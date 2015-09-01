@@ -4,10 +4,10 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>reveal.js - The HTML Presentation Framework</title>
+		<title>A Light Introduction to Elasticsearch</title>
 
-		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
-		<meta name="author" content="Hakim El Hattab">
+		<meta name="description" content="A quick presentation teaching you about ES.">
+		<meta name="author" content="Hayden Chudy">
 
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -15,7 +15,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
 
 		<link rel="stylesheet" href="css/reveal.css">
-		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+		<link rel="stylesheet" href="css/theme/solarized.css" id="theme">
 
 		<!-- Code syntax highlighting -->
 		<link rel="stylesheet" href="lib/css/zenburn.css">
@@ -41,140 +41,435 @@
 			<!-- Any section element inside of this container is displayed as a slide -->
 			<div class="slides">
 				<section>
-					<h1>Reveal.js</h1>
-					<h3>The HTML Presentation Framework</h3>
+					<h1>Elasticsearch</h1>
+					<h3>A Short Introduction</h3>
 					<p>
-						<small>Created by <a href="http://hakim.se">Hakim El Hattab</a> / <a href="http://twitter.com/hakimel">@hakimel</a></small>
+						<small>Created by <a href="http://haydenchudy.com">Hayden Chudy</a> / <a href="http://twitter.com/hjc1710">@hjc1710</a></small>
 					</p>
 				</section>
 
 				<section>
-					<h2>Hello There</h2>
-					<p>
-						reveal.js enables you to create beautiful interactive slide decks using HTML. This presentation will show you examples of what it can do.
-					</p>
+					<h2>What is Elasticsearch?</h2>
+					<ul>
+						<li>
+							A distributed, clusterable search server powered by a JSON DSL for searching.
+						</li>
+						<li>
+							Really, just a layer of abstractions on top Lucene to store more structured data.
+						</li>
+						<li>
+							Can also be used as a simple document-oriented NoSQL database.
+							<ul>
+								<li>Sort of like Mongo with better queries and even <b>less</b> relations.</li>
+								<li>Normally backed by another database storage engine though.</li>
+							</ul>
+						</li>
+						<li>Written in Java.</li>
+					</ul>
+
+					<aside class="notes">
+						<ul>
+							<li>
+								Layer of abstractions - Lucene only stores strings, but ES supports storing, indexing
+								and searching through complicated JSON structures, this is all done through clever use
+								of key names and values within Lucene, that ES turns into a structure of sort
+							</li>
+							<li>
+								Some people use ES as their primary storage engine, especially if their core data source
+								is logs. However, ES is frequently joined with another database storage engine, and data
+								is mirrored between the two.
+							</li>
+						</ul>
+					</aside>
 				</section>
 
 				<!-- Example of nested vertical slides -->
 				<section>
+					<h2>What is Lucene?</h2>
+					<ul>
+						<li>Open Source project by Apache to write an Information Retrieval (IR) System.</li>
+						<li>IR Systems use metadata and full text search to make finding information very efficient.</li>
+						<li>Provides a robust and accurate scoring algorithm.</li>
+						<li>A number of major search engine solutions are built on top of Lucene.</li>
+						<li>Started in 1999 by Doug Cutting, adopted by Apache in 2001, became it's own top level project in 2005.</li>
+						<li>Also written in Java, providing a robust native Java API.</li>
+					</ul>
+
+					<aside class="notes">
+						<ul>
+							<li>
+								IR Systems are focused on efficiently searching for and retrieving information, as
+								opposed to being focused on efficiently storing said information (which is what normal
+								DBMS's are focused on).
+							</li>
+							<li>
+								For example: a common strategy in IR to improve search robustness is to index the
+								same field of data in multiple, different fashions so it can match more complex
+								queries. Compare this to relational DB, where you are constantly trying to lower how
+								many duplicate entries of a field there are.
+							</li>
+							<li>
+								The scoring algorithm used is: tf-idf. However, individual query objects can affect
+								tf-idf scoring and lie at the heart of why Lucene scoring is great.
+							</li>
+							<li>
+								Large projects built on top of Lucene, in addition to ES, include:
+								<ul>
+									<li>Solr</li>
+									<li>Compass (precursor to ES)</li>
+									<li>
+										Swiftype (an enterprise search start up that sells search solutions to other sites,
+										built on top of Lucene)
+									</li>
+									<li>KinoSearch (another big search server like Solr)</li>
+								</ul>
+							</li>
+							<li>
+								Some people even use Lucene directly and circumvent the likes of Solr and ES entirely.
+								Examples of this include: Apple.com, LinkedIn, Jira, and, formerly, Twitter.
+							</li>
+							<li>ES utilizes Lucene's Java API to provide fast, native access.</li>
+						</ul>
+					</aside>
+				</section>
+
+				<section>
+					<h2>Let's Begin!</h2>
+				</section>
+
+				<section>
+					<h2>Installing Elasticsearch</h2>
+					<ul>
+						<li>Use the Vagrantfile in this repository.</li>
+						<li>Use your Operating System's package manager:</li>
+					</ul>
+					<pre><code data-trim>
+# latest on Ubuntu
+$ apt-get install openjdk-7-jdk
+$ wget -qO-  http://packages.elasticsearch.org/GPG-KEY-elasticsearch - | apt-key add -
+$ echo "deb http://packages.elasticsearch.org/elasticsearch/1.7/debian stable main" > /etc/apt/sources.list.d/elasticsearch.list
+$ apt-get update
+$ apt-get install elasticsearch
+# OSX with Brew
+$ brew install elasticsearch
+					</code></pre>
+					<aside class="notes">
+						<ul>
+							<li>Vagrant requires version 1.6+, vagrant-bindfs, and vagrant-salt.</li>
+							<li>Install those and vagrant up, and vagrant will forward port 9200 for you.</li>
+						</ul>
+					</aside>
+				</section>
+
+				<section>
+					<h2>Seeing if it Works</h2>
+					<pre><code data-trim>
+hayden@beardtop ~> curl -XGET localhost:9200
+{
+	"status" : 200,
+	"name" : "Madam Slay",
+	"cluster_name" : "elasticsearch",
+	"version" : {
+		"number" : "1.7.1",
+		"build_hash" : "b88f43fc40b0bcd7f173a1f9ee2e97816de80b19",
+		"build_timestamp" : "2015-07-29T09:54:16Z",
+		"build_snapshot" : false,
+		"lucene_version" : "4.10.4"
+	},
+	"tagline" : "You Know, for Search"
+}
+					</code></pre>
+					<aside class="notes">
+						<ul>
+							<li>
+								Seeing if ES is up and running is simple: just curl port 9200 and see if you get
+								a response!
+							</li>
+							<li>Fun fact, all Elasticsearch node names come from Marvel super hero names.</li>
+						</ul>
+					</aside>
+				</section>
+
+				<section>
+					<h2>Indexing Your First Item</h2>
+					<pre><code data-trim>
+hayden@beardtop ~> curl -XPOST "localhost:9200/croscon/employees/1" -d '{
+	"name": "Adam Heim",
+	"id": 1,
+	"specialties": ["javascript", "php"]
+}'
+{"_index":"croscon","_type":"employees","_id":"1","_version":1,"created":true}
+
+hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
+{"_index":"croscon","_type":"employees","_id":"1","_version":1,"found":true,"_source":{
+	"name": "Adam Heim",
+	"id": 1,
+	"specialties": ["javascript", "php"]
+}}
+					</code></pre>
+
+					<aside class="notes">
+						<ul>
+							<li>Indexing is as simple as a POST request.</li>
+							<li>
+								We explicitly specified the id in the path, but you can also omit it and let ES
+								create one on its own.
+							</li>
+							<li>Fetching is then as simple as GETing the route by id.</li>
+							<li>
+								The URL scheme goes as follows: $ES_URL/$INDEX_NAME/$TYPE_NAME/$DOCUMENT_ID.
+								<ul>
+									<li>
+										An index is a collection of documents that have somewhat similar characteristics.
+										For example, you can have an index for customer data, and another index for a
+										product catalog. An index is identified by a name (that must be all lowercase) and
+									</li>
+									<li>
+										A type is a logical category/partition of your index whose structure is up to you.
+										In general, a type is defined for documents that have a set of common fields.
+										For example, let’s assume you run a blogging platform and store all your data
+										in a single index. In this index, you may define a type for user data,
+										another type for blog data, and yet another type for comments data.
+									</li>
+									<li>
+										A document is a basic unit of information that can be indexed.
+										For example, you can have a document for a single customer, another document
+										for a single product, and yet another for a single order.
+										This document is expressed in JSON, much like Mongo.
+										<br/>
+										Within an index/type, you can store as many documents as you want. Note
+										that although a document physically resides in an index, a document actually
+										must be indexed/assigned to a type inside an index.
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</aside>
+				</section>
+
+				<section>
+					<h2>Updating Data</h2>
+					<pre><code data-trim>
+hayden@beardtop ~> curl -XPUT "localhost:9200/croscon/employees/1" -d '{
+	"name": "Adam Heim",
+	"id": 1,
+	"specialties": ["javascript", "php"],
+	"date_of_birth": "1990-12-10"
+}'
+{"_index":"croscon","_type":"employees","_id":"1","_version":2,"created":false}
+
+hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
+{"_index":"croscon","_type":"employees","_id":"1","_version":2,"found":true,"_source":{
+	"name": "Adam Heim",
+	"id": 1,
+	"specialties": ["javascript", "php"],
+	"date_of_birth": "1990-12-10"
+}}
+					</code></pre>
+					<aside class="notes">
+						Let's add a new date of birth field.
+						<br/>
+						To update an item, you merely PUT to the route by ID with the new, complete
+						document. Deleting of fields is done by omission.
+						<br/>
+						Brand new fields are automatically mapped into the index, parsed, and saved.
+						<br/>
+						Known fields are parsed as described by their mappings, and saved.
+						<br/>
+						<br/>
+						Some more employee data:
+						{ "name": "Paul Decotiis", "id": 2, "specialties": ["css", "less", "magic"], "date_of_birth": "1987-XX-YY" }
+						{ "name": "Hayden Chudy", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17" }
+						{ "name": "Marcel Esser", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16" }
+					</aside>
+				</section>
+
+				<section>
 					<section>
-						<h2>Vertical Slides</h2>
-						<p>Slides can be nested inside of each other.</p>
-						<p>Use the <em>Space</em> key to navigate through all slides.</p>
-						<br>
-						<a href="#" class="navigate-down">
-							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
-						</a>
+						<h2>Searching</h2>
+
+						<h3>Getting Everyone</h3>
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search'
+						</code></pre>
 					</section>
 					<section>
-						<h2>Basement Level 1</h2>
-						<p>Nested slides are useful for adding additional detail underneath a high level horizontal slide.</p>
+						<h2>Searching</h2>
+
+						<h3>Getting just the PHP'rs</h3>
+
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
+{
+	"query": {
+		"term": {
+		 "specialties": "php"
+		}
+	}
+}'
+						</code></pre>
 					</section>
 					<section>
-						<h2>Basement Level 2</h2>
-						<p>That's it, time to go back up.</p>
-						<br>
-						<a href="#/2">
-							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Up arrow" style="transform: rotate(180deg); -webkit-transform: rotate(180deg);">
-						</a>
+						<h2>Searching</h2>
+						<h3>Getting all the people still somewhat young:</h3>
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
+{
+	"query": {
+		"range": {
+			"date_of_birth": {
+				"gte": "1990-01-01",
+				"lte": "now"
+			}
+		}
+	}
+}'
+						</code></pre>
 					</section>
+
+					<!--Add more employees, search by tag to get Panda, Heim, and I; search by date to get just Heim, then-->
+					<!--Heim and I-->
+
+					<aside class="notes">
+						<ul>
+							<li>
+								The presence of that `_search` is integral. Running a search against just an index
+								and a type will produce an error along the lines of: `No endpoint found for
+								$TYPENAME`.
+							</li>
+							<li>
+								This is all just a very light example, and all of the options given can be further
+								customized to support boosting, multiple date formats, timeszones, etc.
+							</li>
+							<li>
+								Segue into mapping with a note about: "But, wait... how did that date range search work?
+								We just gave it a string? There were no explicit dates involved!"
+							</li>
+						</ul>
+					</aside>
 				</section>
 
 				<section>
-					<h2>Slides</h2>
-					<p>
-						Not a coder? Not a problem. There's a fully-featured visual editor for authoring these, try it out at <a href="http://slides.com" target="_blank">http://slides.com</a>.
-					</p>
+					<h2>Welcome to Mappings</h2>
+					<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/_mapping?pretty'
+{
+  "croscon" : {
+    "mappings" : {
+      "employees" : {
+        "properties" : {
+          "date_of_birth" : {
+            "type" : "date",
+            "format" : "dateOptionalTime"
+          },
+          "id" : {
+            "type" : "long"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "specialties" : {
+            "type" : "string"
+          }
+        }
+      }
+    }
+  }
+}
+					</code></pre>
+					<aside class="notes">
+						<ul>
+							<li>
+								Behind the scenes, ES creates a mapping for each type it has in an index.
+								It parses each JSON payload and makes an intelligent best guess at what
+								type each field should be.
+								<br/>
+								If you'll notice, it guessed correctly that our date_of_birth field was a
+								Date with an optional Time part, even though it was sent as a string.
+								<br/>
+								Mapping also works on nested objects and arrays, natively.
+							</li>
+							<li>
+								Stored vs. indexed.
+								<!--@TODO: Flesh out and give an example of stored. -->
+							</li>
+							<li>
+								Some supported types: string, number, date, boolean, binary (base64 representation
+								of binary data; not stored or indexed by default), arrays, objects, arrays of objects,
+								ip addresses (IPv4 only), geographic points, and geographic shapes.
+							</li>
+							<li>
+								The type of a field determines which queries can be run on it and how given queries
+								are processed/run. For example, doing a range over numbers is done very differently
+								then a range over IP's.
+							</li>
+						</ul>
+					</aside>
 				</section>
 
 				<section>
-					<h2>Point of View</h2>
-					<p>
-						Press <strong>ESC</strong> to enter the slide overview.
-					</p>
-					<p>
-						Hold down alt and click on any element to zoom in on it using <a href="http://lab.hakim.se/zoom-js">zoom.js</a>. Alt + click anywhere to zoom back out.
-					</p>
-				</section>
-
-				<section>
-					<h2>Touch Optimized</h2>
-					<p>
-						Presentations look great on touch devices, like mobile phones and tablets. Simply swipe through your slides.
-					</p>
-				</section>
-
-				<section data-markdown>
-					<script type="text/template">
-						## Markdown support
-
-						Write content using inline or external Markdown.
-						Instructions and more info available in the [readme](https://github.com/hakimel/reveal.js#markdown).
-
-						```
-						<section data-markdown>
-						  ## Markdown support
-
-						  Write content using inline or external Markdown.
-						  Instructions and more info available in the [readme](https://github.com/hakimel/reveal.js#markdown).
-						</section>
-						```
-					</script>
-				</section>
-
-				<section>
-					<section id="fragments">
-						<h2>Fragments</h2>
-						<p>Hit the next arrow...</p>
-						<p class="fragment">... to step through ...</p>
-						<p><span class="fragment">... a</span> <span class="fragment">fragmented</span> <span class="fragment">slide.</span></p>
-
+					<section>
+						<h2>Explicit Mappings</h2>
+						Cover multi-fields and give an example.
+						<ul>
+							<li>
+								Either a file in <code>/etc/elasticsearch/templates</code> or dynamically PUT via an
+								API request.
+							</li>
+							<li>
+								Example:
+							</li>
+						</ul>
 						<aside class="notes">
-							This slide has fragments which are also stepped through in the notes window.
+							While ES does determine automatic mappings for each type, you can also explicitly define
+							a mapping for each type yourself, in case of ambiguous fields, complicated fields (such as
+							multi-fields), or missing fields.
 						</aside>
 					</section>
 					<section>
-						<h2>Fragment Styles</h2>
-						<p>There's different types of fragments, like:</p>
-						<p class="fragment grow">grow</p>
-						<p class="fragment shrink">shrink</p>
-						<p class="fragment fade-out">fade-out</p>
-						<p class="fragment current-visible">current-visible</p>
-						<p class="fragment highlight-red">highlight-red</p>
-						<p class="fragment highlight-blue">highlight-blue</p>
+						<pre><code data-trim>
+hayden@beardtop {~/gits/elasticsearch-intro-pres} ~> curl -XPUT 'localhost:9200/croscon/_mapping/projects' -d '
+{
+  "projects": {
+    "_id": {
+      "index": "not_analyzed",
+      "path": "id",
+      "type": "long"
+    },
+    "properties": {
+      "name": {
+        "type": "string",
+        "store": true,
+        "index": "analyzed",
+        "fields": {
+          "raw": {
+            "type": "string",
+            "index": "not_analyzed"
+          }
+        }
+      },
+      "due_date": {
+        "type": "date"
+      },
+      "id": {
+        "type": "long"
+      },
+      "client": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "long"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}'
+						</code></pre>
 					</section>
-				</section>
-
-				<section id="transitions">
-					<h2>Transition Styles</h2>
-					<p>
-						You can select from different transitions, like: <br>
-						<a href="?transition=none#/transitions">None</a> -
-						<a href="?transition=fade#/transitions">Fade</a> -
-						<a href="?transition=slide#/transitions">Slide</a> -
-						<a href="?transition=convex#/transitions">Convex</a> -
-						<a href="?transition=concave#/transitions">Concave</a> -
-						<a href="?transition=zoom#/transitions">Zoom</a>
-					</p>
-				</section>
-
-				<section id="themes">
-					<h2>Themes</h2>
-					<p>
-						reveal.js comes with a few themes built in: <br>
-						<!-- Hacks to swap themes after the page has loaded. Not flexible and only intended for the reveal.js demo deck. -->
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/black.css'); return false;">Black (default)</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/white.css'); return false;">White</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/league.css'); return false;">League</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/sky.css'); return false;">Sky</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/beige.css'); return false;">Beige</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/simple.css'); return false;">Simple</a> <br>
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/serif.css'); return false;">Serif</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/blood.css'); return false;">Blood</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/night.css'); return false;">Night</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/moon.css'); return false;">Moon</a> -
-						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/solarized.css'); return false;">Solarized</a>
-					</p>
 				</section>
 
 				<section>
