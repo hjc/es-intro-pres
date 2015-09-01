@@ -10,7 +10,7 @@ To presentation:
 
 To elasticsearch:
 
-1. Install [Vagrant](https://vagrantup.com).
+1. Install [Vagrant](https://www.vagrantup.com/).
 2. `vagrant plugin install vagrant-bindfs`
 3. `vagrant plugin install vagrant-salt`
 4. `vagrant up`
