@@ -194,7 +194,7 @@ hayden@beardtop ~> curl -XGET localhost:9200
 					<h2>Indexing Your First Item</h2>
 					<pre><code data-trim>
 hayden@beardtop ~> curl -XPOST "localhost:9200/croscon/employees/1" -d '{
-	"name": "Adam Heim",
+	"name": "Tom Sawyer",
 	"id": 1,
 	"specialties": ["javascript", "php"]
 }'
@@ -202,7 +202,7 @@ hayden@beardtop ~> curl -XPOST "localhost:9200/croscon/employees/1" -d '{
 
 hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
 {"_index":"croscon","_type":"employees","_id":"1","_version":1,"found":true,"_source":{
-	"name": "Adam Heim",
+	"name": "Tom Sawyer",
 	"id": 1,
 	"specialties": ["javascript", "php"]
 }}
@@ -251,7 +251,7 @@ hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
 					<h2>Updating Data</h2>
 					<pre><code data-trim>
 hayden@beardtop ~> curl -XPUT "localhost:9200/croscon/employees/1" -d '{
-	"name": "Adam Heim",
+	"name": "Tom Sawyer",
 	"id": 1,
 	"specialties": ["javascript", "php"],
 	"date_of_birth": "1990-12-10"
@@ -260,7 +260,7 @@ hayden@beardtop ~> curl -XPUT "localhost:9200/croscon/employees/1" -d '{
 
 hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
 {"_index":"croscon","_type":"employees","_id":"1","_version":2,"found":true,"_source":{
-	"name": "Adam Heim",
+	"name": "Tom Sawyer",
 	"id": 1,
 	"specialties": ["javascript", "php"],
 	"date_of_birth": "1990-12-10"
@@ -278,9 +278,9 @@ hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
 						<br/>
 						<br/>
 						Some more employee data:
-						{ "name": "Paul Decotiis", "id": 2, "specialties": ["css", "less", "magic"], "date_of_birth": "1987-XX-YY" }
-						{ "name": "Hayden Chudy", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17" }
-						{ "name": "Marcel Esser", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16" }
+						{ "name": "Ben Rogers", "id": 2, "specialties": ["css", "less", "magic"], "date_of_birth": "1987-08-10" }
+						{ "name": "Huck Finn", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17" }
+						{ "name": "Pap Finn", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16" }
 					</aside>
 				</section>
 
@@ -291,7 +291,57 @@ hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
 						<h3>Getting Everyone</h3>
 						<pre><code data-trim>
 hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search'
+{
+  "took" : 3,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 4,
+    "max_score" : 1.0,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "4",
+      "_score" : 1.0,
+      "_source":{ "name": "Pap Finn", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{"name": "Tom Sawyer","id": 1,"specialties": ["javascript", "php"],"date_of_birth": "1990-12-10"}
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "2",
+      "_score" : 1.0,
+      "_source":{ "name": "Ben Rogers", "id": 2, "specialties": ["css", "less", "magic"], "date_of_birth": "1987-08-10" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{ "name": "Huck Finn", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17" }
+    } ]
+  }
+}
 						</code></pre>
+
+						<aside class="notes">
+							The presence of that `_search` is integral. Running a search against just an index
+							and a type will produce an error along the lines of: `No endpoint found for
+							$TYPENAME`.
+							<br/>
+							If you'll notice, these aren't in any real order, and every document returned
+							has a score of: 1.0.
+							<br/>
+							When searching, `?pretty` is your friend, otherwise, all your results are returned
+							minified.
+						</aside>
 					</section>
 					<section>
 						<h2>Searching</h2>
@@ -301,52 +351,107 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search'
 						<pre><code data-trim>
 hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
 {
-	"query": {
-		"term": {
-		 "specialties": "php"
-		}
-	}
+  "query": {
+    "term": {
+      "specialties": "php"
+    }
+  }
 }'
+
+{
+  "took" : 6,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 3,
+    "max_score" : 0.19178301,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "1",
+      "_score" : 0.19178301,
+      "_source":{ "name": "Tom Sawyer","id": 1,"specialties": ["javascript", "php"],"date_of_birth": "1990-12-10" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "4",
+      "_score" : 0.15342641,
+      "_source":{ "name": "Pap Finn", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "3",
+      "_score" : 0.15342641,
+      "_source":{ "name": "Huck Finn", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17" }
+    } ]
+  }
+}
+
 						</code></pre>
+						<aside class="notes">
+							And everyone but Paul is returned, as expected.
+							<br/>
+							If you'll notice, we searched for a string in an array rather easily, and ES will naturally
+							make all of its queries just <i>work</i> with arrays.
+							<br/>
+							If you notice, the score has changed, but is still identical because TF-IDF is identical
+							for both of us in this simple query.
+						</aside>
 					</section>
 					<section>
 						<h2>Searching</h2>
-						<h3>Getting all the people still somewhat young:</h3>
+						<h3>Getting everyone born in 1990 and on:</h3>
 						<pre><code data-trim>
 hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
 {
-	"query": {
-		"range": {
-			"date_of_birth": {
-				"gte": "1990-01-01",
-				"lte": "now"
-			}
-		}
-	}
+  "query": {
+    "range": {
+      "date_of_birth": {
+        "gte": "1990-01-01",
+        "lte": "now"
+      }
+    }
+  }
 }'
+{
+  "hits" : {
+    "total" : 2,
+    "max_score" : 1.0,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{ "name": "Tom Sawyer", "id": 1, "specialties": ["javascript", "php"],"date_of_birth": "1990-12-10" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{ "name": "Huck Finn", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17" }
+    } ]
+  }
+}
+
 						</code></pre>
+						<aside class="notes">
+							The `lte` for now is optional, but it is included to show you that ES has some strings
+							with special meaning. This one turns into the current DateTime.
+							<br/>
+							You'll notice there's still no score here. That's because scoring a range query is
+							<b>hard</b> and elasticsearch doesn't do <b>everything</b>
+							<br/>
+							These are all just very light examples, and all of the options given can be further
+							customized to support boosting, multiple date formats, timeszones, etc.
+							<br/>
+							Segue into mapping with a note about: "But, wait... how did that date range search work?
+							We just gave it a string? There were no explicit dates involved!"
+						</aside>
 					</section>
-
-					<!--Add more employees, search by tag to get Panda, Heim, and I; search by date to get just Heim, then-->
-					<!--Heim and I-->
-
-					<aside class="notes">
-						<ul>
-							<li>
-								The presence of that `_search` is integral. Running a search against just an index
-								and a type will produce an error along the lines of: `No endpoint found for
-								$TYPENAME`.
-							</li>
-							<li>
-								This is all just a very light example, and all of the options given can be further
-								customized to support boosting, multiple date formats, timeszones, etc.
-							</li>
-							<li>
-								Segue into mapping with a note about: "But, wait... how did that date range search work?
-								We just gave it a string? There were no explicit dates involved!"
-							</li>
-						</ul>
-					</aside>
 				</section>
 
 				<section>
@@ -390,8 +495,7 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/_mapping?pretty'
 								Mapping also works on nested objects and arrays, natively.
 							</li>
 							<li>
-								Stored vs. indexed.
-								<!--@TODO: Flesh out and give an example of stored. -->
+								Mapping is what make the magic ES queries possible, and also efficient.
 							</li>
 							<li>
 								Some supported types: string, number, date, boolean, binary (base64 representation
@@ -410,7 +514,6 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/_mapping?pretty'
 				<section>
 					<section>
 						<h2>Explicit Mappings</h2>
-						Cover multi-fields and give an example.
 						<ul>
 							<li>
 								Either a file in <code>/etc/elasticsearch/templates</code> or dynamically PUT via an
@@ -428,7 +531,7 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/_mapping?pretty'
 					</section>
 					<section>
 						<pre><code data-trim>
-hayden@beardtop {~/gits/elasticsearch-intro-pres} ~> curl -XPUT 'localhost:9200/croscon/_mapping/projects' -d '
+hayden@beardtop ~> curl -XPUT 'localhost:9200/croscon/_mapping/projects' -d '
 {
   "projects": {
     "_id": {
@@ -469,47 +572,518 @@ hayden@beardtop {~/gits/elasticsearch-intro-pres} ~> curl -XPUT 'localhost:9200/
   }
 }'
 						</code></pre>
+						<aside class="notes">
+							<ul>
+								<li>
+									Multi-fields: Multi-fields are when you pass a given field through multiple
+									analyzers and store multiple variations of it, for different searching reasons.
+									A very common multi-field, is the `raw` field, which is just a string that is
+									indexed as is, and is not parsed before being indexed.
+								</li>
+								<li>
+									Stored vs. indexed.
+									<br/>
+									For any given field, you can choose to store and/or index it.
+									<br/>
+									Storing a field means it is stored directly alongside the document identifier.
+									Think of it this way: Lucene just stores pointers to ID's, these ID's are then
+									looked up in ES, and come with extra information. By default, the indexed JSON document
+									is stored in the _source field and it can be parsed and used to return any field
+									you desire. Alternatively, you can disable _source, to save space, or store
+									an additional field explicitly, allowing you to fetch it without parsing _source.
+									<br/>
+									Indexing a field means it is inserted into Lucene and prepared for searching. To
+									search over a field it <b>must</b> be indexed. You can index a field as analyzed
+									or not_analyzed. Analyzed means it will be transformed before being inserted (more
+									on that later), not analyzed means it is inserted into Lucene raw.
+									<br/>
+									By default, fields are indexed and not stored.
+								</li>
+							</ul>
+						</aside>
+					</section>
+					<section>
+						<h2>Breaking Your Mappings</h2>
+
+						If you ever try to insert data that doesn't match your mappings, ES will slap you back
+						with this:
+
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XPOST 'localhost:9200/croscon/employees' -d '
+{
+  "name": "Ben Rogers",
+  "id": 2,
+  "specialties": ["css", "less", "magic"],
+  "date_of_birth": "1987-XX-YY"
+}'
+{"error":"MapperParsingException[failed to parse [date_of_birth]];
+nested: MapperParsingException[failed to parse date field
+[1987-XX-YY], tried both date format [dateOptionalTime], and
+timestamp number with locale []]; nested:
+IllegalArgumentException[Invalid format: \"1987-XX-YY\" is
+malformed at \"-XX-YY\"]; ","status":400}
+						</code></pre>
+
+						<aside class="notes">
+							I will point out though, that this is a very useful error message.
+						</aside>
 					</section>
 				</section>
 
 				<section>
-					<section data-background="#dddddd">
-						<h2>Slide Backgrounds</h2>
-						<p>
-							Set <code>data-background="#dddddd"</code> on a slide to change the background color. All CSS color formats are supported.
-						</p>
-						<a href="#" class="navigate-down">
-							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
-						</a>
+					<h2>TO THE MOON WITH SCORING AND ORDERING!</h2>
+
+					<img src="img/doge-moon.png" alt="TO THE MOON!!!!!!!!!"/>
+				</section>
+
+				<section>
+					<section>
+						<h2>Ordering</h2>
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "due_date": {
+        "order": "asc",
+        "missing": "_last"
+      }
+    },
+    {
+      "name.raw": {
+        "order": "desc"
+      }
+    },
+    "_score"
+  ]
+}'
+{
+  "hits" : {
+    "total" : 3,
+    "max_score" : null,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{"name": "MC3 Rearch", "due_date": "2015-09-08", "id": 1, "client": { "name": "HFA", "id": 1 } },
+      "sort" : [ 1441670400000, "MC3 Rearch", 1.0 ]
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "2",
+      "_score" : 1.0,
+      "_source":{"name": "MC4", "due_date": "2016-12-21", "id": 2, "client": { "name": "Croscon", "id": 2 } },
+      "sort" : [ 1482278400000, "MC4", 1.0 ]
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{"name": "ZVM", "due_date": null, "id": 3, "client": null },
+      "sort" : [ 9223372036854775807, "ZVM", 1.0 ]
+    } ]
+  }
+}
+
+						</code></pre>
+
+						<aside class="notes">
+							<ul>
+								<li>
+									Earlier, we lightly discussed that Lucene implemented multiple scoring algorithms.
+									Internally, Elasticsearch uses these derived scores to determine the sort order for
+									all results.
+								</li>
+								<li>
+									However, we can override that sort order rather easy. We can sort on our arbitrary
+									fields in whatever order we want, then we can let Elasticsearch's native score
+									ordering kick in whenever.
+								</li>
+								<li>
+									The order syntax is rather simple, but extendable:
+									<ul>
+										<li>
+											Pick a field name, and then a direction.
+										</li>
+										<li>
+											Alternatively, pick a field name, then open an object for more options! In
+											the second example we're doing two things:
+											<ol>
+												<li>
+													We're using our name.raw multi-field. We're using this because names
+													are composed of two parts, a first and a last, and we want to sort on
+													both of those names. If we were to run this over just the `name` field,
+													we would get unpredictable results, due to how analyzers
+													work (something we'll cover later).
+												</li>
+												<li>
+													We're using the special `missing` option. `missing` tells ES what to do
+													when it finds a document without this field. Rather, it tells ES what
+													VALUE to give that document for this field. In this case, we're telling
+													ES to give that document whatever value it needs to be sorted last
+													(likely a name of: ""). If we wanted all missing names to be sorted as
+													if they were equal to: "CROSCON", that would be as simple as changing
+													"_last" to be "CROSCON" (an example of that would be nice).
+												</li>
+											</ol>
+										</li>
+										<li>
+											Our final example is the score sorting fallback. If you just pass `_score`,
+											then ES knows to sort on the score in a descending fashion! AWESOME!
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</aside>
 					</section>
-					<section data-background="https://s3.amazonaws.com/hakim-static/reveal-js/image-placeholder.png">
-						<h2>Image Backgrounds</h2>
-						<pre><code>&lt;section data-background="image.png"&gt;</code></pre>
+					<section>
+						<h2>Ordering</h2>
+						<pre><code data-trim>
+ curl -XGET 'localhost:9200/croscon/projects/_search?pretty' -d '
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "due_date": {
+        "order": "asc",
+        "missing": "_first"
+      }
+    },
+    {
+      "name.raw": {
+        "order": "desc"
+      }
+    },
+    "_score"
+  ]
+}'
+{
+  "hits" : {
+    "total" : 3,
+    "max_score" : null,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{"name": "ZVM", "due_date": null, "id": 3, "client": null },
+      "sort" : [ -9223372036854775808, "ZVM", 1.0 ]
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{"name": "MC3 Rearch", "due_date": "2015-09-08", "id": 1, "client": { "name": "HFA", "id": 1 } },
+      "sort" : [ 1441670400000, "MC3 Rearch", 1.0 ]
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "2",
+      "_score" : 1.0,
+      "_source":{"name": "MC4", "due_date": "2016-12-21", "id": 2, "client": { "name": "Croscon", "id": 2 } },
+      "sort" : [ 1482278400000, "MC4", 1.0 ]
+    } ]
+  }
+}
+
+						</code></pre>
+						<aside class="notes">
+							We can also make missing fields come first.s
+						</aside>
 					</section>
-					<section data-background="https://s3.amazonaws.com/hakim-static/reveal-js/image-placeholder.png" data-background-repeat="repeat" data-background-size="100px">
-						<h2>Tiled Backgrounds</h2>
-						<pre><code style="word-wrap: break-word;">&lt;section data-background="image.png" data-background-repeat="repeat" data-background-size="100px"&gt;</code></pre>
-					</section>
-					<section data-background-video="https://s3.amazonaws.com/static.slid.es/site/homepage/v1/homepage-video-editor.mp4,https://s3.amazonaws.com/static.slid.es/site/homepage/v1/homepage-video-editor.webm" data-background-color="#000000">
-						<div style="background-color: rgba(0, 0, 0, 0.9); color: #fff; padding: 20px;">
-							<h2>Video Backgrounds</h2>
-							<pre><code style="word-wrap: break-word;">&lt;section data-background-video="video.mp4,video.webm"&gt;</code></pre>
-						</div>
-					</section>
-					<section data-background="http://i.giphy.com/90F8aUepslB84.gif">
-						<h2>... and GIFs!</h2>
+
+					<section>
+						<h2>Ordering</h2>
+						<pre><code data-trim>
+curl -XGET 'localhost:9200/croscon/projects/_search?pretty' -d '
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "due_date": {
+        "order": "asc",
+        "missing": 1444455518000
+      }
+    },
+    {
+      "name.raw": {
+        "order": "desc"
+      }
+    },
+    "_score"
+  ]
+}'
+{
+  "hits" : {
+    "total" : 3,
+    "max_score" : null,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{"name": "MC3 Rearch", "due_date": "2015-09-08", "id": 1, "client": { "name": "HFA", "id": 1 } },
+      "sort" : [ 1441670400000, "MC3 Rearch", 1.0 ]
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{"name": "ZVM", "due_date": null, "id": 3, "client": null },
+      "sort" : [ 1444455518000, "ZVM", 1.0 ]
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "2",
+      "_score" : 1.0,
+      "_source":{"name": "MC4", "due_date": "2016-12-21", "id": 2, "client": { "name": "Croscon", "id": 2 } },
+      "sort" : [ 1482278400000, "MC4", 1.0 ]
+    } ]
+  }
+}
+						</code></pre>
+						<aside class="notes">
+							Or we can give it a specific value. In this example, we've given it the UNIX timestamp
+							that corresponds to: 2015-10-10, putting it right in the middle
+						</aside>
 					</section>
 				</section>
 
-				<section data-transition="slide" data-background="#4d7e65" data-background-transition="zoom">
-					<h2>Background Transitions</h2>
-					<p>
-						Different background transitions are available via the backgroundTransition option. This one's called "zoom".
-					</p>
-					<pre><code>Reveal.configure({ backgroundTransition: 'zoom' })</code></pre>
+				<section>
+					<h2>Scoring</h2>
+
+					Show an actual search result and highlight the score, also introduce ?explain
+
+					<aside class="notes">
+						<ul>
+							<li>
+								The other part of ordering results is scoring. Scoring can basically be summed up as
+								"Lucene gives a document a relevance score, indicating how relevant said document
+								was to our initial search".
+							</li>
+							<li>
+								Obviously, this is a wonderful thing to sort on.
+							</li>
+							<li>
+								But, how the fuck does it work!?
+							</li>
+						</ul>
+					</aside>
 				</section>
 
-				<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+				<section>
+					<section>
+						<h2>A Smidge of TF-IDF</h2>
+						<ul>
+							<li>
+								TF-IDF is the algorithm that is the primary driving force behind Lucene's relevance score.
+							</li>
+							<li>
+								TF-IDF = "Term Frequency - Inverse Document Frequency"
+							</li>
+							<li>
+								Basically: the more a word appears in a single document, the more valuable it is; however
+								the more it appears in MULTIPLE documents all in a single index, the LESS valuable it is.
+							</li>
+							<li>
+								This sort of naturally handles things like Stop Words (and, the, is), but there are even
+								better solutions to that problem later!
+							</li>
+						</ul>
+					</section>
+
+					<section>
+						EMBED IMAGE OF TF-IDF FORMULA HERE
+
+						<aside class="notes">
+							Mathematically, the way this all works all plays out kind of like:
+							<ol>
+								<li>
+									Calculate the term frequency. This can be done multiple ways, but the easiest
+									way is to make it so term frequency == the raw frequency of a term in a document.
+									Basically, if f(t, d) is the raw number of times a single term appears in a document,
+									then tf(t, d) = f(t, d). Other, more complicated schemes apply, such as logarithmically
+									scaled term frequencies [tf(t, d) = 1 + log(f(t, d))], or even augmented frequencies
+									which prevent bias towards longer documents
+									[tf(f, d) = 0.5 + ((0.5 x f(t, d)) / max(all_docs, key=f(t, d)))
+								</li>
+								<li>
+									Calculate the inverse document frequency. The inverse document frequency is gotten
+									by taking the log of the number of total documents in a corpus (or index, or collection
+									of indices) divided by the total number of documents that contain this term, so:
+									log(N / abs(sum(N, key=lambda x: term in x.terms)))
+								</li>
+								<li>
+									Multiply those two.
+								</li>
+							</ol>
+							In a nutshell: Maths. Mucho, mucho maths.
+							<br/>
+							Lucene does this for every query, and it does it an efficient manner!
+						</aside>
+					</section>
+
+					<aside class="notes">
+
+					</aside>
+				</section>
+
+				<section>
+					<section>
+						<h2>Analyzers, Tokenizers, and Filters</h2>
+
+						<ul>
+							<li>
+								Analyzers, Tokenizers, Filters allow you to transform your textual data into a more
+								searchable format.
+							</li>
+							<li>
+								An Analyzer merely consists of a series of Tokenizers and Filters.
+							</li>
+							<li>
+								Some example Tokenizers include: stop words, whitespace, etc.
+							</li>
+							<li>
+								Example Filters include: stop words (again)... not sure what else.
+							</li>
+							<li>
+								Customizing Analyzers, Filters, and Tokenizers is quite possible, but is FAR beyond
+								the scope of this talk.
+							</li>
+							<li>
+								An example analyzer would be: INSERT EXAMPLE HERE.
+							</li>
+						</ul>
+
+						<aside class="notes">
+							<ul>
+								<li>
+									Tokenizers split a single string into multiple, smaller constituent pieces,
+									each of which is indexed and can be searched for.
+								</li>
+								<li>
+									Tokenizers are the crux of search. Without tokenizers, you would have to search for
+									an exact string to get any match out of ES. With tokenizers, ES will break each word
+									in a string up into its own item, allowing you to search for just that.
+								</li>
+								<li>
+									Tokenizers can also support things like multi-lingual search, if made robust enough.
+								</li>
+								<li>
+									Filters get rid of all the noise in a search that we just don't need. The best example
+									is a stop word. In the English language, a stop word is just a word that is used as
+									a tool and really provides no semantic meaning to a sentence, such as and, or, or but.
+									If we were to index this, it would become almost immediately useless due to how TF-IDF
+									works, meaning it just takes up space. Well, instead of storing it... how about we
+									strip it!? That's exactly what filters are for!
+								</li>
+								<li>
+									When we're creating that `name.raw` field, all we're telling ES to do is... DON'T
+									analyze that field at all, so we have the full string in tact and can work with it.
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>Stemming</h2>
+						Stemming is taking a word and reducing it to its "root stem".
+						For example, consider the word: skiing. The root of skiing is really just ski, and almost all
+						searches for ski or skiing should return both. Another example is "dogs", whose root is dog. A
+						search for dogs or dog should almost always be stemmed down because rarely do people care how
+						many adorable puppies are in their returned search results.
+					</section>
+
+					<section>
+						Analyzers and Tokenizers
+
+						Might move this to be an explain section.
+					</section>
+
+					Remember how I said we had to search on name.raw, otherwise we'd get odd results? Well, this is where
+					I explain why!
+				</section>
+
+				<section>
+					<section>
+						<h2>Making Search Work for You</h2>
+
+						<ul>
+							<li>
+								So far, ES has been quite powerful, but it's not perfect. There are some things ES
+								doesn't handle <b>at all</b>, such as array ordering.
+							</li>
+							<li>
+								There are always workarounds though!
+							</li>
+							<li>
+								The solution to your problems in ES are almost always: STORE MORE DATA!
+							</li>
+						</ul>
+
+						<aside class="notes">
+							Internally, it would be an ENORMOUS pain in the ass for ES to store information on the
+							ordering of each array entry, so it just <i>doesn't</i> (why? Because ES stores arrays as:
+							{"user_alias": "bob"}, {"user_alias": "tim"}, {"user_alias": "joe"}, with just the array
+							key, because this is easy to search over, storing information about the ordering of the array
+							in the key would, by definition, make every key for every array entry different, no es bueno).
+						</aside>
+					</section>
+					<section>
+						<h2>Making Search Work for You</h2>
+						<ul>
+							<li>
+								Let's fix our problem of searching over the first item in an array.
+							</li>
+							<li>
+								We'll do this by simply indexing the first item in that array:
+								<pre><code data-trim>
+doc = create_doc(id)
+doc.top_specialty = specialities[0]
+index_doc(doc)
+								</code></pre>
+							</li>
+							<li>
+								We can now search for everyone who's top specialty is <code>php</code> with:
+								<pre><code data-trim>
+hayden@beardtop ~> curl -XGET localhost:9200/croscon/employees/_search -d '
+{
+  "query": {
+	"term": {
+	  "top_specialty": "php"
+	}
+  }
+}'
+
+								</code></pre>
+							</li>
+							<li>
+								We've now made our search more robust and powerful!
+							</li>
+							<li>
+								Need to see if a document has exact contents of an array? Alpha sort it, join them
+								all with commas, and index that! Rebuild this at search time and... PROFIT!!!!
+							</li>
+							<li>
+								If scoring doesn't work for you, make your <b>data</b> work for you.
+							</li>
+						</ul>
+
+						<aside class="notes">
+							No really, that's what an ES core contributor told me to do when I had this problem!
+						</aside>
+					</section>
+				</section>
+
+				<section>
 					<h2>Background Transitions</h2>
 					<p>
 						You can override background transitions per-slide.
