@@ -222,7 +222,7 @@ hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
 									<li>
 										An index is a collection of documents that have somewhat similar characteristics.
 										For example, you can have an index for customer data, and another index for a
-										product catalog. An index is identified by a name (that must be all lowercase) and
+										product catalog.
 									</li>
 									<li>
 										A type is a logical category/partition of your index whose structure is up to you.
@@ -359,13 +359,6 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
 }'
 
 {
-  "took" : 6,
-  "timed_out" : false,
-  "_shards" : {
-    "total" : 5,
-    "successful" : 5,
-    "failed" : 0
-  },
   "hits" : {
     "total" : 3,
     "max_score" : 0.19178301,
@@ -393,13 +386,13 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
 
 						</code></pre>
 						<aside class="notes">
-							And everyone but Paul is returned, as expected.
+							And everyone but Ben is returned, as expected.
 							<br/>
 							If you'll notice, we searched for a string in an array rather easily, and ES will naturally
 							make all of its queries just <i>work</i> with arrays.
 							<br/>
-							If you notice, the score has changed, but is still identical because TF-IDF is identical
-							for both of us in this simple query.
+							If you notice, the score has changed! Tom Sawyer wins because he has the least
+							specialties!
 						</aside>
 					</section>
 					<section>
@@ -860,7 +853,35 @@ curl -XGET 'localhost:9200/croscon/projects/_search?pretty' -d '
 				<section>
 					<h2>Scoring</h2>
 
-					Show an actual search result and highlight the score, also introduce ?explain
+					<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/tweets/tweet/_search?pretty' -d '
+{
+  "query": {
+	"match": {
+	  "tweet": "taylorswift13"
+	}
+  }
+}'
+{
+  "hits" : {
+    "total" : 2,
+    "max_score" : 0.095891505,
+    "hits" : [ {
+      "_index" : "tweets",
+      "_type" : "tweet",
+      "_id" : "2",
+      "_score" : **0.095891505**,
+      "_source":{"user": "@hjc1710", "tweet": "Not convinced @carlyraejepsen is better than @taylorswift13 though."}
+    }, {
+      "_index" : "tweets",
+      "_type" : "tweet",
+      "_id" : "4",
+      "_score" : **0.076713204**,
+      "_source":{"user": "@hjc1710", "tweet": "You'll always have my heart @taylorswift13, no matter what @carlyraejepsen does."}
+    } ]
+  }
+}
+					</code></pre>
 
 					<aside class="notes">
 						<ul>
@@ -871,6 +892,13 @@ curl -XGET 'localhost:9200/croscon/projects/_search?pretty' -d '
 							</li>
 							<li>
 								Obviously, this is a wonderful thing to sort on.
+							</li>
+							<li>
+								The starred portion are the scores elasticsearch has derived. Since we haven't boosted
+								much, they're rather small, but you'll notice they're different. The reason the first
+								tweet is higher is because it is a shorter string and matches in shorter strings are
+								worth more, under the argument that the less words there are, the more impact each
+								individual word has on the sentence.
 							</li>
 							<li>
 								But, how the fuck does it work!?
@@ -938,28 +966,472 @@ curl -XGET 'localhost:9200/croscon/projects/_search?pretty' -d '
 
 				<section>
 					<section>
-						<h2>Analyzers, Tokenizers, and Filters</h2>
+						<h2>Peeking Into Scoring</h2>
+						Let's see how elasticsearch scores:
+
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/tweets/tweet/_search?pretty&explain' -d '
+{
+  "query": {
+	"match": {
+	  "tweet": "carlyraejepsen"
+	}
+  }
+}'
+{
+  "hits" : {
+    "total" : 4,
+    "max_score" : 0.11506981,
+    "hits" : [ {
+      "_shard" : 2,
+      "_node" : "08j3yVwyRaCJ3PQrQBcy3A",
+      "_index" : "tweets",
+      "_type" : "tweet",
+      "_id" : "1",
+      "_score" : 0.11506981,
+      "_source":{"user": "@hjc1710", "tweet": "The new @carlyraejepsen album is top notch"},
+      "_explanation" : {
+        "value" : 0.11506981,
+        "description" : "weight(tweet:carlyraejepsen in 0) [PerFieldSimilarity], result of:",
+        "details" : [ {
+          "value" : 0.11506981,
+          "description" : "fieldWeight in 0, product of:",
+          "details" : [ {
+            "value" : 1.0,
+            "description" : "tf(freq=1.0), with freq of:",
+            "details" : [ {
+              "value" : 1.0,
+              "description" : "termFreq=1.0"
+            } ]
+          }, {
+            "value" : 0.30685282,
+            "description" : "idf(docFreq=1, maxDocs=1)"
+          }, {
+            "value" : 0.375,
+            "description" : "fieldNorm(doc=0)"
+          } ]
+        } ]
+      }
+    },
+    {
+      "_source": "Not convinced @carlyraejepsen is better than @taylorswift13 though.",
+      "_explanation" : {
+        "value" : 0.095891505,
+        "description" : "weight(tweet:carlyraejepsen in 0) [PerFieldSimilarity], result of:",
+        "details" : [ {
+          "value" : 0.095891505,
+          "description" : "fieldWeight in 0, product of:",
+          "details" : [ {
+            "value" : 1.0,
+            "description" : "tf(freq=1.0), with freq of:",
+            "details" : [ {
+              "value" : 1.0,
+              "description" : "termFreq=1.0"
+            } ]
+          }, {
+            "value" : 0.30685282,
+            "description" : "idf(docFreq=1, maxDocs=1)"
+          }, {
+            "value" : 0.3125,
+            "description" : "fieldNorm(doc=0)"
+          } ]
+        } ]
+
+...
+						</code></pre>
+						<aside class="notes">
+							<ul>
+								<li>
+									If you throw the `explain` GET parameter into the query string, ES will return
+									a HUGE amount of info on how the scoring went. In addition to other things.
+								</li>
+								<li>
+									Included in here is TF-IDF information! Also, information on the field length norm,
+									which is how long the field is, and is why the longer string was worth less earlier!
+								</li>
+								<li>
+									Notice how the IDF score is the same for both documents (because we're searching
+									for the same term), and it's really the field norm that differentiates them here.
+								</li>
+								<li>
+									Other info ES returns about the query include:
+
+									<ol>
+										<li>
+											The Lucene Shard that the data came from (more on that later).
+										</li>
+										<li>
+											The ID of the node that found this result.
+										</li>
+									</ol>
+
+									Why is this returned? Because term and document frequencies are counted per
+									shard! Not per index!
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>Let's boost!</h2>
+
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/tweets/tweet/_search?pretty&explain' -d '
+{
+  "query": {
+	"bool": {
+	  "should": [
+		{
+		  "match": {
+			"tweet": {
+			  "query": "taylorswift13",
+			  "boost": 2
+			}
+		  }
+		},
+		{
+		  "match": {
+			"tweet": "carlyraejepsen"
+		  }
+		}
+	  ]
+	}
+  }
+}'
+{
+  "took" : 9,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 4,
+    "max_score" : 0.12865195,
+    "hits" : [ {
+      "_shard" : 3,
+      "_node" : "08j3yVwyRaCJ3PQrQBcy3A",
+      "_index" : "tweets",
+      "_type" : "tweet",
+      "_id" : "2",
+      "_score" : 0.12865195,
+      "_source":{"user": "@hjc1710", "tweet": "Not convinced @carlyraejepsen is better than @taylorswift13 though."},
+      "_explanation" : {
+        "value" : 0.12865196,
+        "description" : "sum of:",
+        "details" : [ {
+          "value" : 0.08576798,
+          "description" : "weight(tweet:taylorswift13^2.0 in 0) [PerFieldSimilarity], result of:",
+          "details" : [ {
+            "value" : 0.08576798,
+            "description" : "score(doc=0,freq=1.0), product of:",
+            "details" : [ {
+              "value" : 0.89442724,
+              "description" : "queryWeight, product of:",
+              "details" : [ {
+                "value" : 2.0,
+                "description" : "boost"
+              }, {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 1.4574206,
+                "description" : "queryNorm"
+              } ]
+            }, {
+              "value" : 0.095891505,
+              "description" : "fieldWeight in 0, product of:",
+              "details" : [ {
+                "value" : 1.0,
+                "description" : "tf(freq=1.0), with freq of:",
+                "details" : [ {
+                  "value" : 1.0,
+                  "description" : "termFreq=1.0"
+                } ]
+              }, {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 0.3125,
+                "description" : "fieldNorm(doc=0)"
+              } ]
+            } ]
+          } ]
+        }, {
+          "value" : 0.04288399,
+          "description" : "weight(tweet:carlyraejepsen in 0) [PerFieldSimilarity], result of:",
+          "details" : [ {
+            "value" : 0.04288399,
+            "description" : "score(doc=0,freq=1.0), product of:",
+            "details" : [ {
+              "value" : 0.44721362,
+              "description" : "queryWeight, product of:",
+              "details" : [ {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 1.4574206,
+                "description" : "queryNorm"
+              } ]
+            }, {
+              "value" : 0.095891505,
+              "description" : "fieldWeight in 0, product of:",
+              "details" : [ {
+                "value" : 1.0,
+                "description" : "tf(freq=1.0), with freq of:",
+                "details" : [ {
+                  "value" : 1.0,
+                  "description" : "termFreq=1.0"
+                } ]
+              }, {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 0.3125,
+                "description" : "fieldNorm(doc=0)"
+              } ]
+            } ]
+          } ]
+        } ]
+      }
+    }, {
+      "_shard" : 0,
+      "_node" : "08j3yVwyRaCJ3PQrQBcy3A",
+      "_index" : "tweets",
+      "_type" : "tweet",
+      "_id" : "4",
+      "_score" : 0.10292157,
+      "_source":{"user": "@hjc1710", "tweet": "You'll always have my heart @taylorswift13, no matter what @carlyraejepsen does."},
+      "_explanation" : {
+        "value" : 0.10292157,
+        "description" : "sum of:",
+        "details" : [ {
+          "value" : 0.06861438,
+          "description" : "weight(tweet:taylorswift13^2.0 in 0) [PerFieldSimilarity], result of:",
+          "details" : [ {
+            "value" : 0.06861438,
+            "description" : "score(doc=0,freq=1.0), product of:",
+            "details" : [ {
+              "value" : 0.89442724,
+              "description" : "queryWeight, product of:",
+              "details" : [ {
+                "value" : 2.0,
+                "description" : "boost"
+              }, {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 1.4574206,
+                "description" : "queryNorm"
+              } ]
+            }, {
+              "value" : 0.076713204,
+              "description" : "fieldWeight in 0, product of:",
+              "details" : [ {
+                "value" : 1.0,
+                "description" : "tf(freq=1.0), with freq of:",
+                "details" : [ {
+                  "value" : 1.0,
+                  "description" : "termFreq=1.0"
+                } ]
+              }, {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 0.25,
+                "description" : "fieldNorm(doc=0)"
+              } ]
+            } ]
+          } ]
+        }, {
+          "value" : 0.03430719,
+          "description" : "weight(tweet:carlyraejepsen in 0) [PerFieldSimilarity], result of:",
+          "details" : [ {
+            "value" : 0.03430719,
+            "description" : "score(doc=0,freq=1.0), product of:",
+            "details" : [ {
+              "value" : 0.44721362,
+              "description" : "queryWeight, product of:",
+              "details" : [ {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 1.4574206,
+                "description" : "queryNorm"
+              } ]
+            }, {
+              "value" : 0.076713204,
+              "description" : "fieldWeight in 0, product of:",
+              "details" : [ {
+                "value" : 1.0,
+                "description" : "tf(freq=1.0), with freq of:",
+                "details" : [ {
+                  "value" : 1.0,
+                  "description" : "termFreq=1.0"
+                } ]
+              }, {
+                "value" : 0.30685282,
+                "description" : "idf(docFreq=1, maxDocs=1)"
+              }, {
+                "value" : 0.25,
+                "description" : "fieldNorm(doc=0)"
+              } ]
+            } ]
+          } ]
+        } ]
+      }
+    },
+    {
+      "_shard" : 4,
+      "_node" : "08j3yVwyRaCJ3PQrQBcy3A",
+      "_index" : "tweets",
+      "_type" : "tweet",
+      "_id" : "3",
+      "_score" : 0.005816851,
+      "_source":{"user": "@hjc1710", "tweet": "Yea, I think I like 1989 more than anything @carlyraejepsen has done."},
+      "_explanation" : {
+        "value" : 0.005816851,
+        "description" : "product of:",
+        "details" : [ {
+          "value" : 0.011633702,
+          "description" : "sum of:",
+          "details" : [ {
+            "value" : 0.011633702,
+            "description" : "weight(tweet:carlyraejepsen in 0) [PerFieldSimilarity], result of:",
+            "details" : [ {
+              "value" : 0.011633702,
+              "description" : "score(doc=0,freq=1.0), product of:",
+              "details" : [ {
+                "value" : 0.15165187,
+                "description" : "queryWeight, product of:",
+                "details" : [ {
+                  "value" : 0.30685282,
+                  "description" : "idf(docFreq=1, maxDocs=1)"
+                }, {
+                  "value" : 0.49421698,
+                  "description" : "queryNorm"
+                } ]
+              }, {
+                "value" : 0.076713204,
+                "description" : "fieldWeight in 0, product of:",
+                "details" : [ {
+                  "value" : 1.0,
+                  "description" : "tf(freq=1.0), with freq of:",
+                  "details" : [ {
+                    "value" : 1.0,
+                    "description" : "termFreq=1.0"
+                  } ]
+                }, {
+                  "value" : 0.30685282,
+                  "description" : "idf(docFreq=1, maxDocs=1)"
+                }, {
+                  "value" : 0.25,
+                  "description" : "fieldNorm(doc=0)"
+                } ]
+              } ]
+            } ]
+          } ]
+        }, {
+          "value" : 0.5,
+          "description" : "coord(1/2)"
+        } ]
+      }
+    } ]
+  }
+}
+
+
+						</code></pre>
+						<aside class="notes">
+							Legit, just walk through this.
+							<br/>
+							This is a truncated resultset too.
+						</aside>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h2>Analyzers, Tokenizers, and TokenFilters</h2>
 
 						<ul>
 							<li>
-								Analyzers, Tokenizers, Filters allow you to transform your textual data into a more
+								Analyzers, Tokenizers, and TokenFilters allow you to transform your textual data into a more
 								searchable format.
 							</li>
 							<li>
-								An Analyzer merely consists of a series of Tokenizers and Filters.
+								An Analyzer merely consists of a series of Tokenizers and TokenFilters.
+							</li>
+
+							<li>
+								Customizing Analyzers, TokenFilters, and Tokenizers is quite possible, but is FAR beyond the scope of this talk.
 							</li>
 							<li>
-								Some example Tokenizers include: stop words, whitespace, etc.
+								Example analyzers include: standard, whitespace, and language.
+							</li>
+						</ul>
+
+						<aside class="notes">
+							<ul>
+								<li>
+									Analyzers are what make elasticsearch powerful and good for searching. They
+									take your very specific sentences and turn them into more generic and searchable
+									pieces.
+								</li>
+								<li>
+									Example Analyzer:
+									<ul>
+										<li>
+											Standard Analyzer: breaks words into tokens based on UAX #29, lowercases
+											everything, and removes stop words.
+										</li>
+										<li>
+											Whitespace Analyzer: Splits words into tokens based on whitespace.
+										</li>
+										<li>
+											Language: An implementation of the standard analyzer for other languages
+											besides English. Supported languages include: arabic, persian, portuguese,
+											and norwegian.
+										</li>
+									</ul>
+								</li>
+								<li>
+									When we're creating that `name.raw` field, all we're telling ES to do is... DON'T
+									analyze that field at all, so we have the full string in tact and can work with it.
+								</li>
+								<li>
+									Analyzers are also why sorting on non-raw fields gives odd results. When this is done
+									ES sorts on the first token it finds, which is basically undefined behavior.
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>Tokenizers</h2>
+
+						<ul>
+							<li>
+								Tokenizers take a string of text and split it up into individual tokens, each
+								of which is indexed and can be searched for.
 							</li>
 							<li>
-								Example Filters include: stop words (again)... not sure what else.
+								Some example Tokenizers include: standard, keyword, ngram, and pattern.
 							</li>
 							<li>
-								Customizing Analyzers, Filters, and Tokenizers is quite possible, but is FAR beyond
-								the scope of this talk.
-							</li>
-							<li>
-								An example analyzer would be: INSERT EXAMPLE HERE.
+								Example ngram:
+								<pre><code data-trim>
+ngram("croscon", max=5, min=4) == [
+  "cros",
+  "crosc",
+  "rosc",
+  "rosco",
+  "osco",
+  "oscon",
+  "scon"
+]
+								</code></pre>
 							</li>
 						</ul>
 
@@ -975,41 +1447,158 @@ curl -XGET 'localhost:9200/croscon/projects/_search?pretty' -d '
 									in a string up into its own item, allowing you to search for just that.
 								</li>
 								<li>
-									Tokenizers can also support things like multi-lingual search, if made robust enough.
-								</li>
-								<li>
-									Filters get rid of all the noise in a search that we just don't need. The best example
-									is a stop word. In the English language, a stop word is just a word that is used as
-									a tool and really provides no semantic meaning to a sentence, such as and, or, or but.
-									If we were to index this, it would become almost immediately useless due to how TF-IDF
-									works, meaning it just takes up space. Well, instead of storing it... how about we
-									strip it!? That's exactly what filters are for!
-								</li>
-								<li>
-									When we're creating that `name.raw` field, all we're telling ES to do is... DON'T
-									analyze that field at all, so we have the full string in tact and can work with it.
+									Example tokenizers:
+									<ul>
+										<li>
+											Standard - a tokenizer good for most European languages, implements
+											the Unicode Text Segmentation algorithm which is described in Unicode
+											Annex #29, which describes guidelines for determining default boundaries
+											between major text elements (characters, words, and sentences). I did not
+											have the time to fully read through the algorithm, but it was badass.
+										</li>
+										<li>
+											Keyword - indexes the entire string as is.
+										</li>
+										<li>
+											NGram - breaks words up into smaller pieces, as specified by you. For
+											example, you set a ngram tokenizer up with a max ngram of 5 and min of
+											4 and pass it 'croscon', you get: cros, crosc, rosc, rosco, osco, oscon,
+											and scon. This is effective in breaking words up for partial matches. You
+											pick the characters eligible for ngramming.
+										</li>
+										<li>
+											Pattern - breaks up strings into tokens that match a regex. Example:
+											regex of: \$\d+\.\d+, with string of: "Cost: $25.00" would create
+											a single token of: $25.00.
+										</li>
+									</ul>
 								</li>
 							</ul>
 						</aside>
 					</section>
 
 					<section>
-						<h2>Stemming</h2>
-						Stemming is taking a word and reducing it to its "root stem".
-						For example, consider the word: skiing. The root of skiing is really just ski, and almost all
-						searches for ski or skiing should return both. Another example is "dogs", whose root is dog. A
-						search for dogs or dog should almost always be stemmed down because rarely do people care how
-						many adorable puppies are in their returned search results.
+						<h2>TokenFilters</h2>
+						<ul>
+							<li>
+								TokenFilters further parse the results of tokens, stripping unwanted tokens and
+								transforming tokens into more searchable forms.
+							</li>
+							<li>
+								Some examples of making something more searchable: stemming, lowercasing, and trimming.
+							</li>
+							<li>
+								Example TokenFilters include: stop token, reverse token, snowball token,
+								asciifolding.
+							</li>
+							<li>
+								Example stop token:
+								<pre><code data-trim>
+['The', 'fox', 'is', 'brown', 'and', 'warm'] -> ['fox', 'brown', 'warm']
+								</code></pre>
+							</li>
+							<li>
+								There are 37 TokenFilters built into ElasticSearch natively, many provided by Lucene.
+							</li>
+						</ul>
+
+						<aside class="notes">
+							<li>
+								TokenFilters get rid of all the noise in a search that we just don't need. The best example
+								is a stop word. In the English language, a stop word is just a word that is used as
+								a tool and really provides no semantic meaning to a sentence, such as and, or, or but.
+								If we were to index this, it would become almost immediately useless due to how TF-IDF
+								works, meaning it just takes up space. Well, instead of storing it... how about we
+								strip it!? That's exactly what filters are for!
+							</li>
+							<li>
+								Example TokenFilter:
+								<ul>
+									<li>
+										Stop Token - removes stop words from a token stream. Examples include:
+										and, is, and the. There are stop word dictionaries for a multitude of
+										languages built into ES natively.
+									</li>
+									<li>
+										Reverse Token - just reverses the token.
+									</li>
+									<li>
+										Snowball Token - stems tokens using a Snowball generated stemming algorithm.
+										Snowball is a small programming language geared around string properties
+										and generating stemming algorithms.
+									</li>
+									<li>
+										asciifolding - collapses unicode symbols above code point 127 into their
+										ASCII counterparts. Example: ü turns into u.
+									</li>
+								</ul>
+							</li>
+						</aside>
 					</section>
 
 					<section>
-						Analyzers and Tokenizers
-
-						Might move this to be an explain section.
+						<h2>Stemming</h2>
+						<ul>
+							<li>
+								Stemming is taking a word and reducing it to its "root stem".
+							</li>
+							<li>
+								For example, consider the word: skiing. The root of skiing is really just ski, and almost all
+								searches for ski or skiing should return both. Another example is "dogs", whose root is dog. A
+								search for dogs or dog should almost always be stemmed down because rarely do people care how
+								many adorable puppies are in their returned search results.
+							</li>
+						</ul>
 					</section>
 
-					Remember how I said we had to search on name.raw, otherwise we'd get odd results? Well, this is where
-					I explain why!
+					<section>
+						<h2>Stemming</h2>
+						<ul>
+							<li>
+								Stemming rules differ per language, but are generally pretty easy.
+							</li>
+							<li>
+								The algorithm is rather simple and basically works as a replacement table.
+							</li>
+						</ul>
+
+						<table>
+							<tr>
+								<td>SSES		->		SS</td>
+								<td>caresses		->		caress</td>
+							</tr>
+							<tr>
+								<td>IES		->		I</td>
+								<td>ponies		->		poni</td>
+							</tr>
+							<tr>
+								<td>SS		->		SS</td>
+								<td>caress		->		caress</td>
+							</tr>
+							<tr>
+								<td>S		->	</td>
+								<td>cats		->		cat</td>
+							</tr>
+						</table>
+
+						<aside class="notes">
+							Basically, you look at the end of words, and follow the rules.
+							<br/>
+							This is not all the rules for the English language, and you need to come up with
+							rules for each language for this to work.
+							<br/>
+							This is called the Porter Stemming Algorithm and it is what Snowball implements and
+							is quite good at.
+						</aside>
+					</section>
+
+					<section>
+						<img src="img/puppy.jpg" alt="A cute puppy."/>
+						<aside class="notes">
+							In fact, I searched for puppies on Google, and this single puppy is what showed up at the
+							top, due to stemming.
+						</aside>
+					</section>
 				</section>
 
 				<section>
@@ -1051,9 +1640,14 @@ doc.top_specialty = specialities[0]
 index_doc(doc)
 								</code></pre>
 							</li>
-							<li>
-								We can now search for everyone who's top specialty is <code>php</code> with:
-								<pre><code data-trim>
+						</ul>
+					</section>
+
+					<section>
+						<h2>Making Search Work for You</h2>
+
+							We can now search for everyone who's top specialty is <code>php</code> with:
+							<pre><code data-trim>
 hayden@beardtop ~> curl -XGET localhost:9200/croscon/employees/_search -d '
 {
   "query": {
@@ -1062,9 +1656,51 @@ hayden@beardtop ~> curl -XGET localhost:9200/croscon/employees/_search -d '
 	}
   }
 }'
+{
+  "took" : 3,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 5,
+    "successful" : 5,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : 2,
+    "max_score" : 1.0,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{ "name": "Huck Finn", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17", "top_specialty": "php" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "4",
+      "_score" : 0.30685282,
+      "_source":{ "name": "Pap Finn", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16", "top_specialty": "php" }
+    } ]
+  }
+}
 
-								</code></pre>
-							</li>
+							</code></pre>
+						<aside class="notes">
+							But wait... why the score difference?
+							<br/>
+							While the IDF value was the same earlier, as I said, doc count is calculated PER SHARD
+							and not PER INDEX. In this example, Huck lives on a shard that has two items in it, and
+							Pap lives on a shard that has one item in it (just Pap), since IDF is the total number
+							of documents divded by the frequency of a term, the score goes up as there are more documents!
+							<br/>
+							In reality, the distinction that document count is per shard and not per index has little
+							meaning. You generally have so many items, and ES does a fine enough job of spreading them out,
+							that this all evens out.
+						</aside>
+					</section>
+
+					<section>
+						<h2>Making Search Work for You</h2>
+						<ul>
 							<li>
 								We've now made our search more robust and powerful!
 							</li>
@@ -1084,166 +1720,23 @@ hayden@beardtop ~> curl -XGET localhost:9200/croscon/employees/_search -d '
 				</section>
 
 				<section>
-					<h2>Background Transitions</h2>
-					<p>
-						You can override background transitions per-slide.
-					</p>
-					<pre><code style="word-wrap: break-word;">&lt;section data-background-transition="zoom"&gt;</code></pre>
-				</section>
-
-				<section>
-					<h2>Pretty Code</h2>
-					<pre><code data-trim contenteditable>
-function linkify( selector ) {
-  if( supports3DTransforms ) {
-
-    var nodes = document.querySelectorAll( selector );
-
-    for( var i = 0, len = nodes.length; i &lt; len; i++ ) {
-      var node = nodes[i];
-
-      if( !node.className ) {
-        node.className += ' roll';
-      }
-    }
-  }
-}
-					</code></pre>
-					<p>Code syntax highlighting courtesy of <a href="http://softwaremaniacs.org/soft/highlight/en/description/">highlight.js</a>.</p>
-				</section>
-
-				<section>
-					<h2>Marvelous List</h2>
-					<ul>
-						<li>No order here</li>
-						<li>Or here</li>
-						<li>Or here</li>
-						<li>Or here</li>
-					</ul>
-				</section>
-
-				<section>
-					<h2>Fantastic Ordered List</h2>
-					<ol>
-						<li>One is smaller than...</li>
-						<li>Two is smaller than...</li>
-						<li>Three!</li>
-					</ol>
-				</section>
-
-				<section>
-					<h2>Tabular Tables</h2>
-					<table>
-						<thead>
-							<tr>
-								<th>Item</th>
-								<th>Value</th>
-								<th>Quantity</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td>Apples</td>
-								<td>$1</td>
-								<td>7</td>
-							</tr>
-							<tr>
-								<td>Lemonade</td>
-								<td>$2</td>
-								<td>18</td>
-							</tr>
-							<tr>
-								<td>Bread</td>
-								<td>$3</td>
-								<td>2</td>
-							</tr>
-						</tbody>
-					</table>
-				</section>
-
-				<section>
-					<h2>Clever Quotes</h2>
-					<p>
-						These guys come in two forms, inline: <q cite="http://searchservervirtualization.techtarget.com/definition/Our-Favorite-Technology-Quotations">
-						&ldquo;The nice thing about standards is that there are so many to choose from&rdquo;</q> and block:
-					</p>
-					<blockquote cite="http://searchservervirtualization.techtarget.com/definition/Our-Favorite-Technology-Quotations">
-						&ldquo;For years there has been a theory that millions of monkeys typing at random on millions of typewriters would
-						reproduce the entire works of Shakespeare. The Internet has proven this theory to be untrue.&rdquo;
-					</blockquote>
-				</section>
-
-				<section>
-					<h2>Intergalactic Interconnections</h2>
-					<p>
-						You can link between slides internally,
-						<a href="#/2/3">like this</a>.
-					</p>
-				</section>
-
-				<section>
-					<h2>Speaker View</h2>
-					<p>There's a <a href="https://github.com/hakimel/reveal.js#speaker-notes">speaker view</a>. It includes a timer, preview of the upcoming slide as well as your speaker notes.</p>
-					<p>Press the <em>S</em> key to try it out.</p>
+					<h2>Filters</h2>
 
 					<aside class="notes">
-						Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
+						@TODO Filter examples; explain filters, explain filter caches and how that's what most of
+						ES's memory is used for, explain no scoring and when to use them.
 					</aside>
 				</section>
-
 				<section>
-					<h2>Export to PDF</h2>
-					<p>Presentations can be <a href="https://github.com/hakimel/reveal.js#pdf-export">exported to PDF</a>, here's an example:</p>
-					<iframe src="//www.slideshare.net/slideshow/embed_code/42840540" width="445" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:3px solid #666; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
-				</section>
-
-				<section>
-					<h2>Global State</h2>
-					<p>
-						Set <code>data-state="something"</code> on a slide and <code>"something"</code>
-						will be added as a class to the document element when the slide is open. This lets you
-						apply broader style changes, like switching the page background.
-					</p>
-				</section>
-
-				<section data-state="customevent">
-					<h2>State Events</h2>
-					<p>
-						Additionally custom events can be triggered on a per slide basis by binding to the <code>data-state</code> name.
-					</p>
-					<pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
-Reveal.addEventListener( 'customevent', function() {
-	console.log( '"customevent" has fired' );
-} );
-					</code></pre>
-				</section>
-
-				<section>
-					<h2>Take a Moment</h2>
-					<p>
-						Press B or . on your keyboard to pause the presentation. This is helpful when you're on stage and want to take distracting slides off the screen.
-					</p>
-				</section>
-
-				<section>
-					<h2>Much more</h2>
+					<h2>Under the Hood</h2>
 					<ul>
-						<li>Right-to-left support</li>
-						<li><a href="https://github.com/hakimel/reveal.js#api">Extensive JavaScript API</a></li>
-						<li><a href="https://github.com/hakimel/reveal.js#auto-sliding">Auto-progression</a></li>
-						<li><a href="https://github.com/hakimel/reveal.js#parallax-background">Parallax backgrounds</a></li>
-						<li><a href="https://github.com/hakimel/reveal.js#keyboard-bindings">Custom keyboard bindings</a></li>
+						<li>
+							@TODO: Explain Shards.
+						</li>
+						<li>@TODO: Explain cluster</li>
+						<li>@TODO: Show health check example</li>
 					</ul>
 				</section>
-
-				<section style="text-align: left;">
-					<h1>THE END</h1>
-					<p>
-						- <a href="http://slides.com">Try the online editor</a> <br>
-						- <a href="https://github.com/hakimel/reveal.js">Source code &amp; documentation</a>
-					</p>
-				</section>
-
 			</div>
 
 		</div>
