@@ -55,7 +55,7 @@
 							A distributed, clusterable search server powered by a JSON DSL for searching.
 						</li>
 						<li>
-							Really, just a layer of abstractions on top Lucene to store more structured data.
+							Really, just a layer of abstractions on top of Lucene to store more structured data.
 						</li>
 						<li>
 							Can also be used as a simple document-oriented NoSQL database.
@@ -89,7 +89,7 @@
 					<ul>
 						<li>Open Source project by Apache to write an Information Retrieval (IR) System.</li>
 						<li>IR Systems use metadata and full text search to make finding information very efficient.</li>
-						<li>Provides a robust and accurate scoring algorithm.</li>
+						<li>Provides a robust and accurate scoring algorithm, in addition to fast queries.</li>
 						<li>A number of major search engine solutions are built on top of Lucene.</li>
 						<li>Started in 1999 by Doug Cutting, adopted by Apache in 2001, became it's own top level project in 2005.</li>
 						<li>Also written in Java, providing a robust native Java API.</li>
@@ -676,8 +676,8 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
       "_type" : "projects",
       "_id" : "3",
       "_score" : 1.0,
-      "_source":{"name": "ZVM", "due_date": null, "id": 3, "client": null },
-      "sort" : [ 9223372036854775807, "ZVM", 1.0 ]
+      "_source":{"name": "MC5", "due_date": null, "id": 3, "client": null },
+      "sort" : [ 9223372036854775807, "MC5", 1.0 ]
     } ]
   }
 }
@@ -765,8 +765,8 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
       "_type" : "projects",
       "_id" : "3",
       "_score" : 1.0,
-      "_source":{"name": "ZVM", "due_date": null, "id": 3, "client": null },
-      "sort" : [ -9223372036854775808, "ZVM", 1.0 ]
+      "_source":{"name": "MC5", "due_date": null, "id": 3, "client": null },
+      "sort" : [ -9223372036854775808, "MC5", 1.0 ]
     }, {
       "_index" : "croscon",
       "_type" : "projects",
@@ -830,8 +830,8 @@ curl -XGET 'localhost:9200/croscon/projects/_search?pretty' -d '
       "_type" : "projects",
       "_id" : "3",
       "_score" : 1.0,
-      "_source":{"name": "ZVM", "due_date": null, "id": 3, "client": null },
-      "sort" : [ 1444455518000, "ZVM", 1.0 ]
+      "_source":{"name": "MC5", "due_date": null, "id": 3, "client": null },
+      "sort" : [ 1444455518000, "MC5", 1.0 ]
     }, {
       "_index" : "croscon",
       "_type" : "projects",
@@ -1099,13 +1099,6 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/tweets/tweet/_search?pretty&explai
   }
 }'
 {
-  "took" : 9,
-  "timed_out" : false,
-  "_shards" : {
-    "total" : 5,
-    "successful" : 5,
-    "failed" : 0
-  },
   "hits" : {
     "total" : 4,
     "max_score" : 0.12865195,
@@ -1657,13 +1650,6 @@ hayden@beardtop ~> curl -XGET localhost:9200/croscon/employees/_search -d '
   }
 }'
 {
-  "took" : 3,
-  "timed_out" : false,
-  "_shards" : {
-    "total" : 5,
-    "successful" : 5,
-    "failed" : 0
-  },
   "hits" : {
     "total" : 2,
     "max_score" : 1.0,
@@ -1720,25 +1706,696 @@ hayden@beardtop ~> curl -XGET localhost:9200/croscon/employees/_search -d '
 				</section>
 
 				<section>
-					<h2>Filters</h2>
+					<section>
+						<h2>Filters</h2>
+
+						<ul>
+							<li>
+								Filters are basically queries that don't score anything.
+							</li>
+							<li>
+								They run after queries, and filter the final resultset.
+							</li>
+							<li>
+								They are excellent for removing items based on simple boolean tests, or exact
+								matches.
+							</li>
+							<li>
+								Since they don't score, they can be cached, unlike queries.
+							</li>
+							<li>
+								Anytime you don't need to derive a score from a search condition, a filter
+								should be used.
+							</li>
+						</ul>
+
+						<aside class="notes">
+							<ul>
+								<li>
+									Filters are what make ES fast.
+								</li>
+								<li>
+									In general, filters should always be preferred over queries, due to this caching
+									mechanism.
+								</li>
+								<li>
+									The only time you should use queries is when you want to score something.
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>Filter Caching</h2>
+						<ul>
+							<li>
+								Many filters, such as term and prefix, are cached by default, others, such as geo and
+								script, are not cached by default because the cost of caching them introduces additional
+								processing overhead. Grouping filters, such as bool and and, themselves are not cached,
+								but their internal filters frequently are.
+							</li>
+							<li>
+								Either way, you can determine which filters are and are not cached for a given query,
+								and even set the key they are cached under.
+							</li>
+						</ul>
+
+						<aside class="notes">
+							<ul>
+								<li>
+									A good deal of your memory will be dedicated to your filter cache and managing
+									your filter cache is the best way to improve ES performance.
+								</li>
+								<li>
+									You can even cache the results of grouping filters, if you really want to!
+								</li>
+								<li>
+									As stated, use filters over queries, whenever possible, due to this very caching
+									reason.
+								</li>
+								<li>
+									As you'll soon see, you can actually turn ANY query into a filter!
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>Example Filters</h2>
+						<ul>
+							<li>
+								Some example filters include: and, bool, missing, and ids.
+							</li>
+							<li>
+								An example:
+							</li>
+						</ul>
+								<pre><code data-trim>
+hayden@beardtop {~/gits/elasticsearch-intro-pres} ~> curl -XGET 'localhost:9200/croscon/employees/_search?pretty' -d '
+{
+  "query": {
+    "filtered": {
+      "query": { "match_all": {} },
+      "filter": {
+        "term": {
+          "specialties": "php"
+        }
+      }
+    }
+  }
+}'
+{
+  "hits" : {
+    "total" : 3,
+    "max_score" : 1.0,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "4",
+      "_score" : 1.0,
+      "_source":{ "name": "Pap Finn", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16", "top_specialty": "php" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{ "name": "Tom Sawyer", "id": 1, "specialties": ["javascript", "php"], "date_of_birth": "1990-12-10" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{ "name": "Huck Finn", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17", "top_specialty": "php" }
+    } ]
+  }
+}
+								</code></pre>
+						<aside class="notes">
+							<ul>
+								<li>
+									Example filters:
+									<ul>
+										<li>
+											and - a filter that filters documents by joining multiple other filters
+											together with a boolean `AND`.
+										</li>
+										<li>
+											bool - similar in concept to the bool query, this filter filters out
+											documents based on boolean combinations of other filters. must == and;
+											should == or; must_not == negation.
+										</li>
+										<li>
+											missing - a filter that filters documents based on the absence of a field.
+											If the field is missing, the document matches. It's counterpart is exists.
+										</li>
+										<li>
+											ids - a filter that lets you specify an id and a type, matching any document
+											in that type with that id.
+										</li>
+									</ul>
+								</li>
+								<li>
+									To use filters, you must use the filtered query, which will let you specify a
+									query to run, and then a filter to filter those results through.
+								</li>
+								<li>
+									Within the `filtered` query, you specify a single `query`, and a single `filter`.
+									Much like with queries (as evinced earlier with the bool query), if you need to use
+									multiple filters, then you use one of the grouping filters, such as and or bool,
+									that let you decide which boolean opeartor joins each filter.
+								</li>
+								<li>
+									Since filters are more performant and should be used over queries whenever
+									possible, the `filtered` query is most likely the query you will use the most.
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>The Query Filter</h2>
+						<ul>
+							<li>
+								A special filter that lets you turn any query into a filter, by running said query
+								and merely discarding the scoring results.
+							</li>
+						</ul>
+
+						<pre><code data-trim>
+{
+  "query": {
+    "filtered": {
+      "query": {
+        "match_all": {}
+      },
+      "filter": {
+        "query": {
+          "match": {
+            "name": "Finn"
+          }
+        }
+      }
+    }
+  }
+}
+						</code></pre>
+
+						<aside class="notes">
+							<ul>
+								<li>
+									Queries that are turned into filters lose the following features: scoring, and
+									highlighting. Keep that in mind.
+								</li>
+								<li>
+									Query filters are NOT cached by default, but this can be changed.
+								</li>
+								<li>
+									In our example, we are using match as a filter, when match is not really a filter.
+									@TODO: Flesh out. Maybe talk about match all.
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>A Complex Filter</h2>
+
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search?pretty' -d '
+{
+ "query": {
+   "filtered": {
+     "filter": {
+       "bool": {
+         "must": {
+           "query": {
+             "bool": {
+               "should": [
+                 {
+                   "match": {
+                     "specialties": "css"
+                   }
+                 },
+                  {
+                      "match": {
+                        "specialties": "php"
+                      }
+                  },
+                  {
+                     "match": {
+                        "specialties": "javascript"
+                      }
+                  },
+                  {
+                    "match": {
+                      "specialties": "python"
+                    }
+                  }
+                ],
+                "minimum_should_match": 2
+              }
+            }
+          },
+          "should": [
+            {
+              "exists": {
+                "field": "date_of_birth"
+              }
+            },
+            {
+              "missing": {
+                "field": "field_that_dne"
+              }
+            }
+          ],
+          "must_not": {
+            "ids": {
+              "type": "employees",
+              "values": [1]
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+{
+  "hits" : {
+    "total" : 2,
+    "max_score" : 1.0,
+    "hits" : [ {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "4",
+      "_score" : 1.0,
+      "_source":{ "name": "Pap Finn", "id": 4, "specialties": ["php", "python", "devops", "magic"], "date_of_birth": "1984-07-16", "top_specialty": "php" }
+    }, {
+      "_index" : "croscon",
+      "_type" : "employees",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{ "name": "HuckFinn", "id": 3, "specialties": ["php", "python", "devops"], "date_of_birth": "1990-10-17", "top_specialty": "php" }
+    } ]
+  }
+}
+						</code></pre>
+
+						<aside class="notes">
+							<ul>
+								<li>
+									Let's find everyone who has at least two specialties in: php, python, javascript,
+									and css, who has the date_of_birth field, but not the `field_that_dne` field,
+									and let's omit the employee with the id 1, if they happen to match.
+								</li>
+								<li>
+									If you omit the query, like we did here, it is automatically assumed to be a `match_all`.
+								</li>
+								<li>
+									Should's are great for scoring when used in queries, but their role changes when
+									used in filters. You lose the ability to do `minimum_should_match` and they become
+									one big OR condition. So, here we've made a `must` filter that is a `query` filter
+									that then uses the bool query, which CAN use `minimum_should_match`.
+								</li>
+								<li>
+									After running this, we only get Pap and Huck Finn back. Ben is omitted because he
+									only has one matching specialty, and Tom Sawyer is gone because he has the ID of 1.
+								</li>
+								<li>
+									While this is very complicated, it's result can actually be cached and this can be
+									pretty performant.
+								</li>
+								<li>
+									Notice that everything has a score of 1.0.
+								</li>
+							</ul>
+						</aside>
+					</section>
+				</section>
+
+				<section>
+					<section>
+						<h2>A Complex Search</h2>
+
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET localhost:9200/inventory/products,services/_search
+{
+    "sort": [{
+        # list products over services
+        "product_id": {
+            "order": "desc",
+            "missing": 9223372036854775806
+        }
+    },
+    # sort by natural score and then name
+    "_score",
+     {
+        "name.raw": {
+            "order": "asc"
+        }
+    }],
+    "query": {
+        "filtered": {
+            "query": {
+                "function_score": {
+                    "query": {
+                        "function_score": {
+                            "score_mode": "max",
+                            "boost_mode": "replace",
+                            "query": {
+                                "bool": {
+                                    # create an OR on products for a vendor and unfrozen services
+                                    "should": [{
+                                        "bool": {
+                                            "must": [{
+                                                "term": {
+                                                    # only return products for this vendor
+                                                    "vendor_id": {
+                                                        "value": 160,
+                                                        "boost": 1
+                                                    }
+                                                }
+                                            }, {
+                                                "term": {
+                                                    "_type": {
+                                                        # services don't have this field
+                                                        "value": "products",
+                                                        "boost": 1
+                                                    }
+                                                }
+                                            }],
+                                            "must_not": [{
+                                                "term": {
+                                                    # must be in stock
+                                                    "out_of_stock": {
+                                                        "value": true,
+                                                        "boost": 1
+                                                    }
+                                                }
+                                            }]
+                                        }
+                                    }, {
+                                        # only return unfrozen services
+                                        "bool": {
+                                            "must": [{
+                                                "term": {
+                                                    "_type": {
+                                                        "value": "services",
+                                                        "boost": 1
+                                                    }
+                                                }
+                                            }],
+                                            # should not have frozen as true
+                                            "must_not": [{
+                                                "term": {
+                                                    "frozen": {
+                                                        "value": true,
+                                                        "boost": 1
+                                                    }
+                                                }
+                                            }]
+                                        }
+                                    }],
+                                    "minimum_number_should_match": 1
+                                }
+                            },
+                            # weight by category
+                            "functions": [{
+                                "weight": 13,
+                                "filter": {
+                                    "term": {
+                                        "category_id": "18"
+                                    }
+                                }
+                            },
+                            {
+                                "weight": 12,
+                                "filter": {
+                                    "term": {
+                                        "category_id": "17"
+                                    }
+                                }
+                            }]
+                        }
+                    },
+                    # take the first score, then multiply the boosts
+                    "score_mode": "first",
+                    "boost_mode": "multiply",
+                    # the boosts
+                    "functions": [{
+                        # if your stock is 0, we drop your score to 0
+                        "weight": 0,
+                        "filter": {
+                            "term": {
+                                "stock": 0
+                            }
+                        }
+                    }, {
+                        # heavily penalize services and products on sale
+                        "weight": "0.000000000000000000000000000000000001",
+                        "filter": {
+                            "term": {
+                                "on_sale": true
+                            }
+                        }
+                    }]
+                }
+            },
+            "filter": {
+                "bool": {
+                    "must": [{
+                        "term": {
+                            # must be present at this store
+                            "store_id": 1
+                        }
+                    }],
+                    "must_not": [{
+                        "ids": {
+                            # some services are sold as products as well, so we omit
+                            # them this way
+                            "type": "products",
+                            "values": ["128", "531", "648", "1205", "1955", "1956", "2162", "3003", "4821", "7504", "7601", "7683", "8261", "8305", "8739", "8741", "8742", "8912", "8913", "8938", "9168", "9185", "9186", "9187", "9266", "9267", "9327", "9340", "9341", "9667", "11440", "15138", "15139", "15140", "16016", "16017", "16019", "16020", "16021", "16124", "24774", "24857", "27986", "27990", "29337", "31041", "31042", "31043", "31044", "31045", "32252", "36665", "36680", "42842", "42844", "42845", "43223", "47072", "47248", "50108", "50629", "50632", "50738", "50778", "52382", "52385", "52604", "54214", "55526", "55528", "55529", "55530", "55531", "55532", "55533", "55535", "55536", "55635", "57721", "57723", "57730", "2172", "49179", "57869", "57873", "688", "57912", "57914", "1172"]
+                        }
+                    }, {
+                        "bool": {
+                            "must": [{
+                                # we don't show services that are at max capacity
+                                "term": {
+                                    "fully_booked": true
+                                }
+                            }, {
+                                "type": {
+                                    "value": "services"
+                                }
+                            }]
+                        }
+                    }]
+                }
+            }
+        }
+    },
+    "post_filter": {
+        "bool": {
+            "must": [{
+                "term": {
+                    # when we're done aggregating, only return matches that
+                    # are legal to sell in this country
+                    "status": 1
+                }
+            }]
+        }
+    },
+	# only pull the content field out
+    "_source": ["content"],
+	# 100 items please
+    "size": "100",
+    "from": 1,
+    "aggs": {
+        "starred-filter": {
+            "filter": {
+                "bool": {
+                    "must": [{
+                        "term": {
+                            "status": 1
+                        }
+                    }, {
+                        "term": {
+                            "store_id": 1
+                        }
+                    }]
+                }
+            },
+            # return an aggregation of all matches that have been starred, for
+            # UI filtering purposes
+            "aggs": {
+                "starred": {
+                    "terms": {
+                        "field": "starred",
+                        "size": 100
+                    }
+                }
+            }
+        }
+    }
+}
+						</code></pre>
+						<aside class="notes">
+							<ul>
+								<li>
+									Let's search our inventory for products and services!
+								</li>
+								<li>
+									We use a function score query to get the most customizable scoring
+									possible. This example is decent at showing how queries can manipulate
+									the original tf-idf score that Lucene returned.
+								</li>
+								<li>
+									We also have some aggregations, for UI purposes.
+								</li>
+								<li>
+									Orders are involved.
+								</li>
+								<li>
+									This query could be better optimized in general, but it was adapted from
+									a production query for example purposes.
+								</li>
+								<li>
+									Also, this is the simplified form of the query! It's even more intense
+								</li>
+								<li>
+									This is a great reason why you should use a Query Builder in elasticsearch. Writing
+									this by hand would take ages and would be incredibly error prone.
+								</li>
+							</ul>
+						</aside>
+					</section>
+
+					<section>
+						<h2>Searching Over Multiple Indexes/Types</h2>
+						<pre><code data-trim>
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon,test/test,projects/_search?pretty'
+{
+  "hits" : {
+    "total" : 6,
+    "max_score" : 1.0,
+    "hits" : [ {
+      "_index" : "test",
+      "_type" : "test",
+      "_id" : "AU-RxZ641Py57iUyrzuJ",
+      "_score" : 1.0,
+      "_source":{"foo": 1, "bar": 2}
+    }, {
+      "_index" : "test",
+      "_type" : "test",
+      "_id" : "AU-Rxd1z1Py57iUyrzuK",
+      "_score" : 1.0,
+      "_source":{"foo": 1}
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{"name": "MC3 Rearch", "due_date": "2015-09-08", "id": 1, "client": { "name": "HFA", "id": 1 } }
+    }, {
+      "_index" : "test",
+      "_type" : "test",
+      "_id" : "1",
+      "_score" : 1.0,
+      "_source":{"foo": 1}
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "2",
+      "_score" : 1.0,
+      "_source":{"name": "MC4", "due_date": "2016-12-21", "id": 2, "client": { "name": "Croscon", "id": 2 } }
+    }, {
+      "_index" : "croscon",
+      "_type" : "projects",
+      "_id" : "3",
+      "_score" : 1.0,
+      "_source":{"name": "MC5", "due_date": null, "id": 3, "client": null }
+    } ]
+  }
+}
+						</code></pre>
+						<aside class="notes">
+							<ul>
+								<li>
+									In that last example, we saw that you can search over two types at once.
+									But you can take this further! You can search over multiple indexes, or
+									even multiple indexes and types.
+								</li>
+							</ul>
+						</aside>
+					</section>
+				</section>
+
+				<section>
+					<h2>Just the Beginning</h2>
+					<ul>
+						<li>
+							This 38 slide presentation is really just the tip of the iceberg with elasticsearch.
+						</li>
+						<li>
+							Other features not really covered include: aggregations, suggestors,
+							highlighting, percolating, more like this, and search exists.
+						</li>
+						<li>
+							There's also easy clustering, and we didn't even touch how ES really works.
+						</li>
+						<li>
+							Oh, and there are plugins too.
+						</li>
+						<li>
+							And you can write your own queries...
+						</li>
+						<li>
+							I'll have to do another talk...
+						</li>
+					</ul>
 
 					<aside class="notes">
-						@TODO Filter examples; explain filters, explain filter caches and how that's what most of
-						ES's memory is used for, explain no scoring and when to use them.
+						<ul>
+							<li>
+								Aggregations - counting, summing, grouping, etc. operations done on the
+								data that we found. You then transform it into an aggregate statistic for
+								displaying. Such as, number of vendors for products.
+							</li>
+							<li>
+								Suggestors - suggestors take a query in, and then suggest terms that are
+								indexed that are similar to the query.
+							</li>
+							<li>
+								Highlighting - highlighting is when ES actually highlights the parts of
+								a string that matched the query. By default, it wraps them in `em` tags.
+							</li>
+							<li>
+								Percolating - a whole series of magic I don't even understand.
+							</li>
+							<li>
+								More Like This - give it a document, returns similar documents.
+							</li>
+							<li>
+								Search Exists - simply returns a true or false as to whether you would
+								get any matches for a given search.
+							</li>
+						</ul>
 					</aside>
 				</section>
+
 				<section>
 					<h2>Under the Hood</h2>
 					<ul>
 						<li>
-							@TODO: Explain Shards.
+							@TODO: Explain Shards. Shards are really just individual instances of Lucene.
 						</li>
-						<li>@TODO: Explain cluster</li>
+						<li>
+							@TODO: Explain clusters. Clusters are just groups of runnig elasticsearch clusters
+							that can split out the work of indexing and searching for data. A master is appointed.
+						</li>
 						<li>@TODO: Show health check example</li>
 					</ul>
 				</section>
 			</div>
-
 		</div>
 
 		<script src="lib/js/head.min.js"></script>
