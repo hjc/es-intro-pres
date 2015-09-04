@@ -65,6 +65,9 @@
 							</ul>
 						</li>
 						<li>Written in Java.</li>
+						<li>
+							Created by Shay Banon in 2010.
+						</li>
 					</ul>
 
 					<aside class="notes">
@@ -290,7 +293,7 @@ hayden@beardtop ~> curl -XGET "localhost:9200/croscon/employees/1"
 
 						<h3>Getting Everyone</h3>
 						<pre><code data-trim>
-hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search'
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search?pretty'
 {
   "took" : 3,
   "timed_out" : false,
@@ -349,7 +352,7 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search'
 						<h3>Getting just the PHP'rs</h3>
 
 						<pre><code data-trim>
-hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search?pretty' -d '
 {
   "query": {
     "term": {
@@ -633,7 +636,7 @@ malformed at \"-XX-YY\"]; ","status":400}
 					<section>
 						<h2>Ordering</h2>
 						<pre><code data-trim>
-hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search' -d '
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/projects/_search' -d '
 {
   "query": {
     "match_all": {}
@@ -1014,7 +1017,7 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/tweets/tweet/_search?pretty&explai
       }
     },
     {
-      "_source": "Not convinced @carlyraejepsen is better than @taylorswift13 though.",
+      "_source": {"user": "@hjc1710", "tweet": "Not convinced @carlyraejepsen is better than @taylorswift13 though."},
       "_explanation" : {
         "value" : 0.095891505,
         "description" : "weight(tweet:carlyraejepsen in 0) [PerFieldSimilarity], result of:",
@@ -1791,7 +1794,7 @@ hayden@beardtop ~> curl -XGET localhost:9200/croscon/employees/_search -d '
 							</li>
 						</ul>
 								<pre><code data-trim>
-hayden@beardtop {~/gits/elasticsearch-intro-pres} ~> curl -XGET 'localhost:9200/croscon/employees/_search?pretty' -d '
+hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search?pretty' -d '
 {
   "query": {
     "filtered": {
@@ -2040,7 +2043,7 @@ hayden@beardtop ~> curl -XGET 'localhost:9200/croscon/employees/_search?pretty' 
 hayden@beardtop ~> curl -XGET localhost:9200/inventory/products,services/_search
 {
     "sort": [{
-        # list products over services
+        # list services over products
         "product_id": {
             "order": "desc",
             "missing": 9223372036854775806
@@ -2137,10 +2140,10 @@ hayden@beardtop ~> curl -XGET localhost:9200/inventory/products,services/_search
                             }]
                         }
                     },
-                    # take the first score, then multiply the boosts
+                    # take the first score from a function, and
+                    # then multiply the that with the score from the query
                     "score_mode": "first",
                     "boost_mode": "multiply",
-                    # the boosts
                     "functions": [{
                         # if your stock is 0, we drop your score to 0
                         "weight": 0,
